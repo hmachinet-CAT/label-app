@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>まちづくりネット東近江専用A4ラベル印刷用アプリ</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap');
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#f5f4f0;
+    --surface:#ffffff;
+    --border:#e0ddd6;
+    --text:#1a1a18;
+    --muted:#7a7870;
+    --accent:#2d5a3d;
+    --accent-light:#e8f0eb;
+    --danger:#c0392b;
+    --warn-bg:#fdf6e3;
+    --warn-border:#e8d5a3;
+    --success:#27ae60;
+  }
+  body{
+    font-family:'Noto Sans JP',sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    min-height:100vh;
+    font-size:14px;
+  }
+
+  header{
+    background:var(--surface);
+    border-bottom:1px solid var(--border);
+    padding:20px 32px;
+    display:flex;
+    align-items:baseline;
+    gap:12px;
+  }
+  header h1{font-size:15px;font-weight:700;letter-spacing:.02em}
+  header span{font-size:12px;color:var(--muted)}
+
+  main{max-width:860px;margin:0 auto;padding:32px 24px}
+
+  /* ── ステップ ── */
+  .steps{display:flex;gap:0;margin-bottom:32px;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface)}
+  .step{flex:1;padding:14px 16px;text-align:center;font-size:12px;color:var(--muted);border-right:1px solid var(--border);transition:background .2s}
+  .step:last-child{border-right:none}
+  .step.active{background:var(--accent-light);color:var(--accent);font-weight:500}
+  .step.done{background:#f0f5f1;color:var(--accent)}
+  .step-num{display:block;font-size:18px;font-weight:700;margin-bottom:2px}
+
+  /* ── カード ── */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:20px}
+  .card-title{font-size:14px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+  .card-title::before{content:'';display:inline-block;width:4px;height:16px;background:var(--accent);border-radius:2px}
+
+  /* ── ドロップゾーン ── */
+  #dropzone{
+    border:2px dashed var(--border);
+    border-radius:8px;
+    padding:48px 24px;
+    text-align:center;
+    cursor:pointer;
+    transition:all .2s;
+    background:var(--bg);
+  }
+  #dropzone:hover,#dropzone.over{border-color:var(--accent);background:var(--accent-light)}
+  #dropzone .icon{font-size:40px;margin-bottom:12px}
+  #dropzone p{color:var(--muted);font-size:13px;margin-top:6px}
+  #fileInput{display:none}
+
+  /* ── マッピング ── */
+  .mapping-grid{display:grid;grid-template-columns:140px 1fr;gap:10px 16px;align-items:center}
+  .mapping-label{font-size:13px;color:var(--muted);text-align:right}
+  .mapping-row{display:contents}
+  select{
+    width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;
+    font-family:inherit;font-size:13px;background:var(--surface);color:var(--text);
+    appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237a7870'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;
+  }
+  select:focus{outline:none;border-color:var(--accent)}
+
+  .badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500}
+  .badge-ok{background:#e8f5e9;color:#2e7d32}
+  .badge-warn{background:#fff8e1;color:#f57f17}
+  .badge-ng{background:#ffebee;color:#c62828}
+
+  .alert{
+    background:var(--warn-bg);border:1px solid var(--warn-border);
+    border-radius:8px;padding:12px 16px;font-size:13px;color:#7a5c00;margin-bottom:16px;
+  }
+
+  /* ── ボタン ── */
+  .btn{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:10px 20px;border-radius:7px;font-family:inherit;font-size:13px;
+    font-weight:500;cursor:pointer;transition:all .15s;border:none;
+  }
+  .btn-primary{background:var(--accent);color:#fff}
+  .btn-primary:hover{background:#1f4228}
+  .btn-primary:disabled{background:#b0bdb3;cursor:not-allowed}
+  .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
+  .btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+  .btn-row{display:flex;gap:10px;margin-top:20px;justify-content:flex-end}
+
+  /* ── 件数バー ── */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+  .stat{background:var(--bg);border-radius:8px;padding:12px;text-align:center}
+  .stat-num{font-size:22px;font-weight:700;color:var(--accent)}
+  .stat-label{font-size:11px;color:var(--muted);margin-top:2px}
+
+  /* ── プレビュー ── */
+  #preview-area{
+    border:1px solid var(--border);border-radius:8px;overflow:hidden;
+    margin-bottom:20px;
+  }
+  .preview-header{
+    background:var(--bg);border-bottom:1px solid var(--border);
+    padding:8px 14px;font-size:12px;color:var(--muted);
+  }
+  .label-grid{
+    display:grid;grid-template-columns:repeat(3,1fr);
+    gap:0;
+  }
+  .label-cell{
+    border-right:1px dashed var(--border);
+    border-bottom:1px dashed var(--border);
+    padding:12px 14px;
+    min-height:90px;
+  }
+  .label-cell:nth-child(3n){border-right:none}
+  .label-postal{font-size:11px;color:var(--muted);margin-bottom:2px}
+  .label-addr{font-size:11px;color:var(--text);margin-bottom:6px;line-height:1.5}
+  .label-name-row{display:flex;align-items:baseline;justify-content:space-between;gap:4px}
+  .label-name{font-size:11px;font-weight:400}
+  .label-suffix{font-size:11px;color:var(--muted)}
+
+  /* ── スキップリスト ── */
+  .skip-list{font-size:12px;color:var(--danger);margin-top:10px;line-height:1.8}
+
+  /* ── セクション非表示 ── */
+  .section{display:none}
+  .section.visible{display:block}
+
+  /* ── ローディング ── */
+  #loading{
+    display:none;position:fixed;inset:0;background:rgba(255,255,255,.8);
+    align-items:center;justify-content:center;font-size:14px;color:var(--accent);
+    flex-direction:column;gap:12px;z-index:999;
+  }
+  #loading.show{display:flex}
+  .spinner{width:32px;height:32px;border:3px solid var(--accent-light);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<div id="loading"><div class="spinner"></div><span id="loading-text">処理中…</span></div>
+
+<header>
+  <h1>まちづくりネット東近江専用A4ラベル印刷用アプリ</h1>
+  <span>A4 21面（3列×7行）</span>
+</header>
+
+<main>
+  <div class="steps">
+    <div class="step active" id="step1"><span class="step-num">1</span>ファイル選択</div>
+    <div class="step" id="step2"><span class="step-num">2</span>列の確認</div>
+    <div class="step" id="step3"><span class="step-num">3</span>確認・出力</div>
+  </div>
+
+  <!-- ── STEP 1 ── -->
+  <div class="section visible" id="sec1">
+    <div class="card">
+      <div class="card-title">Excelファイルを選択</div>
+      <div id="dropzone" onclick="document.getElementById('fileInput').click()"
+           ondragover="event.preventDefault();this.classList.add('over')"
+           ondragleave="this.classList.remove('over')"
+           ondrop="handleDrop(event)">
+        <div class="icon">📂</div>
+        <strong>クリックまたはドラッグ＆ドロップ</strong>
+        <p>.xlsx / .xls / .csv に対応</p>
+      </div>
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" onchange="handleFile(this.files[0])">
+    </div>
+  </div>
+
+  <!-- ── STEP 2 ── -->
+  <div class="section" id="sec2">
+    <div class="card">
+      <div class="card-title">シート・列の確認</div>
+
+      <div style="margin-bottom:16px">
+        <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:6px">シートを選択</label>
+        <select id="sheetSel" onchange="loadSheet()" style="max-width:260px"></select>
+      </div>
+
+      <div id="alert-area"></div>
+
+      <div class="mapping-grid" id="mapping-grid">
+
+        <div class="mapping-label" style="grid-column:1/-1;font-size:11px;font-weight:600;color:var(--accent);padding:4px 0 2px;text-align:left">── 氏名・団体名</div>
+
+        <div class="mapping-label">氏名（共通） <span class="badge badge-ng" id="b-name">未検出</span></div>
+        <select id="col-name"><option value="">── 使わない ──</option></select>
+
+        <div class="mapping-label">個人名 <span class="badge" id="b-name_ind">未検出</span></div>
+        <select id="col-name_ind"><option value="">── 使わない ──</option></select>
+
+        <div class="mapping-label">団体名 <span class="badge" id="b-name_org">未検出</span></div>
+        <select id="col-name_org"><option value="">── 使わない ──</option></select>
+
+        <div class="mapping-label" style="grid-column:1/-1;font-size:11px;font-weight:600;color:var(--accent);padding:8px 0 2px;text-align:left">── 住所</div>
+
+        <div class="mapping-label">郵便番号 <span class="badge" id="b-postal">未検出</span></div>
+        <select id="col-postal"><option value="">── 使わない ──</option></select>
+
+        <div class="mapping-label">都道府県 <span class="badge" id="b-pref">未検出</span></div>
+        <select id="col-pref"><option value="">── 使わない ──</option></select>
+
+        <div class="mapping-label">市区町村 <span class="badge" id="b-city">未検出</span></div>
+        <select id="col-city"><option value="">── 使わない ──</option></select>
+
+        <div class="mapping-label">住所（共通） <span class="badge" id="b-addr">未検出</span></div>
+        <select id="col-addr"><option value="">── 使わない ──</option></select>
+
+        <div class="mapping-label">個人住所 <span class="badge" id="b-addr_ind">未検出</span></div>
+        <select id="col-addr_ind"><option value="">── 使わない ──</option></select>
+
+        <div class="mapping-label">団体住所 <span class="badge" id="b-addr_org">未検出</span></div>
+        <select id="col-addr_org"><option value="">── 使わない ──</option></select>
+
+        <div class="mapping-label">住所2行目 <span class="badge" id="b-addr2">未検出</span></div>
+        <select id="col-addr2"><option value="">── 使わない ──</option></select>
+      </div>
+
+      <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border);font-size:12px;color:var(--muted)">
+        ※ 様 / 御中 は団体名列の有無・氏名内のキーワードで自動判定します
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="goStep(1)">← 戻る</button>
+      <button class="btn btn-primary" id="btn-next2" onclick="goStep(3)">プレビューへ →</button>
+    </div>
+  </div>
+
+  <!-- ── STEP 3 ── -->
+  <div class="section" id="sec3">
+    <div class="stats">
+      <div class="stat"><div class="stat-num" id="cnt-total">0</div><div class="stat-label">件（ラベル数）</div></div>
+      <div class="stat"><div class="stat-num" id="cnt-pages">0</div><div class="stat-label">ページ</div></div>
+      <div class="stat"><div class="stat-num" id="cnt-skip" style="color:var(--danger)">0</div><div class="stat-label">件スキップ（住所なし）</div></div>
+    </div>
+
+    <div id="preview-area">
+      <div class="preview-header">プレビュー（先頭21件）</div>
+      <div class="label-grid" id="label-grid"></div>
+    </div>
+
+    <div id="skip-area"></div>
+
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="goStep(2)">← 戻る</button>
+      <button class="btn btn-primary" id="btn-dl" onclick="generatePDF()">📄 PDFをダウンロード</button>
+    </div>
+  </div>
+</main>
+
+<script>
+// ─── 定数 ───────────────────────────────────────────
+const ORG_KEYWORDS = [
+  '株式会社','有限会社','合同会社','合資会社','合名会社',
+  '（株）','(株)','（有）','(有)',
+  '法人','協同組合','農業協同組合','協議会','委員会',
+  '協会','連合会','連盟','クラブ','サークル','システム',
+  '事務所','センター','学校','大学','病院','クリニック',
+  '組合','団体','機構','財団','NPO','NGO','御中'
+];
+
+// 列名キーワード辞書
+const COL_HINTS = {
+  name:     ['氏名','名前','お名前','姓名','氏　名','name','fullname','full_name','会員名'],
+  name_ind: ['個人名','個人氏名','寄付者名','個人会員名'],
+  name_org: ['団体名','会社名','企業名','事業所名','取引先名','担当者','法人名','組織名'],
+  postal:   ['郵便番号','郵便','〒','postal','zip','postcode','post_code'],
+  pref:     ['都道府県','prefecture','pref','都道府県名'],
+  city:     ['市区町村','市区郡','city','市町村','区市町村'],
+  addr:     ['住所','ご住所','address','addr','送付先','住　所','住所（全体）',
+             'full_address','mailing_street','maillingstreet'],
+  addr_ind: ['個人住所','個人寄付者住所','自宅住所','個人会員住所'],
+  addr_org: ['団体住所','団体寄付者住所','会社住所','法人住所','勤務先住所'],
+  addr2:    ['住所2','番地','建物名','address2','addr2','番地以降','号室','アパート'],
+};
+
+// ─── 状態 ───────────────────────────────────────────
+let wb = null, headers = [], allRows = [], records = [];
+
+// ─── ファイル読み込み ────────────────────────────────
+function handleDrop(e){
+  e.preventDefault();
+  document.getElementById('dropzone').classList.remove('over');
+  const f = e.dataTransfer.files[0];
+  if(f) handleFile(f);
+}
+function handleFile(f){
+  if(!f) return;
+  showLoading('読み込み中…');
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{
+      wb = XLSX.read(e.target.result,{type:'array',cellDates:true});
+      buildSheetSelect();
+      goStep(2);
+    }catch(err){alert('ファイルの読み込みに失敗しました: '+err.message)}
+    finally{hideLoading()}
+  };
+  reader.readAsArrayBuffer(f);
+}
+function buildSheetSelect(){
+  const sel = document.getElementById('sheetSel');
+  sel.innerHTML = wb.SheetNames.map(n=>`<option>${n}</option>`).join('');
+  loadSheet();
+}
+
+// ─── シート読み込み＆列検出 ─────────────────────────
+function loadSheet(){
+  const name = document.getElementById('sheetSel').value;
+  const ws   = wb.Sheets[name];
+  const data = XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+
+  // ヘッダー行を探す
+  // 「COL_HINTSのキーワードをいずれか1つ以上含む行」を最初に見つけた行をヘッダーとする
+  // → ヘッダーより上の余計な行（タイトル行・注釈行等）を無視できる
+  const allHints = Object.values(COL_HINTS).flat().map(h=>h.toLowerCase().replace(/[\s　]/g,''));
+  let headerRow = 0;
+  for(let i=0;i<Math.min(data.length,20);i++){
+    const rowVals = data[i].map(c=>String(c).trim().toLowerCase().replace(/[\s　]/g,''));
+    const hit = rowVals.some(v => v!=='' && allHints.some(h => v===h || v.includes(h) || h.includes(v) && v.length>=2));
+    if(hit){ headerRow=i; break; }
+  }
+  headers = data[headerRow].map(c=>String(c).trim());
+  allRows = data.slice(headerRow+1).filter(r=>r.some(c=>c!==''));
+
+  buildColSelects();
+  autoDetect();
+}
+
+function buildColSelects(){
+  const ids = ['name','name_ind','name_org','postal','pref','city','addr','addr_ind','addr_org','addr2'];
+  ids.forEach(id=>{
+    const sel = document.getElementById('col-'+id);
+    if(!sel) return;
+    sel.innerHTML = '<option value="">── 使わない ──</option>'
+      + headers.map((h,i)=>`<option value="${i}">${h||'(列'+(i+1)+')'}</option>`).join('');
+  });
+}
+
+function autoDetect(){
+  const ids = ['name','name_ind','name_org','postal','pref','city','addr','addr_ind','addr_org','addr2'];
+  const detected = {};
+  ids.forEach(id=>{
+    const hints = COL_HINTS[id];
+    let found = -1;
+    for(let h of hints){
+      const idx = headers.findIndex(c=>c.toLowerCase().replace(/[\s　]/g,'')===h.toLowerCase().replace(/[\s　]/g,''));
+      if(idx>=0){found=idx;break}
+    }
+    // 部分一致フォールバック
+    if(found<0){
+      for(let h of hints){
+        const idx = headers.findIndex(c=>c.toLowerCase().includes(h.toLowerCase())||h.toLowerCase().includes(c.toLowerCase()));
+        if(idx>=0){found=idx;break}
+      }
+    }
+    if(found>=0){
+      document.getElementById('col-'+id).value = found;
+      detected[id]=true;
+    }
+    updateBadge(id, found>=0);
+  });
+
+  // アラート
+  const alert = document.getElementById('alert-area');
+  if(!detected.name && !detected.name_ind && !detected.name_org){
+    alert.innerHTML=`<div class="alert">⚠️ 氏名・個人名・団体名のいずれの列も自動検出できませんでした。下のドロップダウンから手動で選択してください。</div>`;
+  } else {
+    alert.innerHTML='';
+  }
+}
+
+function updateBadge(id, found){
+  const b = document.getElementById('b-'+id);
+  if(!b) return;
+  if(found){b.className='badge badge-ok';b.textContent='検出済'}
+  else{b.className='badge badge-ng';b.textContent='未検出'}
+}
+
+// 手動変更時もバッジ更新
+['name','name_ind','name_org','postal','pref','city','addr','addr_ind','addr_org','addr2'].forEach(id=>{
+  document.getElementById('col-'+id)?.addEventListener('change',function(){
+    updateBadge(id, this.value!=='');
+  });
+});
+
+// ─── Step 3: レコード生成＆プレビュー ──────────────
+function goStep(n){
+  if(n===3){
+    const hasName = ['col-name','col-name_ind','col-name_org'].some(id=>document.getElementById(id)?.value!=='');
+    if(!hasName){ alert('氏名・個人名・団体名のいずれかの列を選択してください'); return; }
+    buildRecords();
+    renderPreview();
+  }
+  [1,2,3].forEach(i=>{
+    document.getElementById('sec'+i).classList.toggle('visible',i===n);
+    const s=document.getElementById('step'+i);
+    s.className='step'+(i===n?' active':i<n?' done':'');
+  });
+}
+
+function getCol(id){
+  const v = document.getElementById('col-'+id).value;
+  return v==='' ? null : parseInt(v);
+}
+function cellVal(row,idx){
+  if(idx===null||idx===undefined) return '';
+  return String(row[idx]??'').trim();
+}
+
+function buildRecords(){
+  records=[];
+  const skipped=[];
+  const seen = new Set();
+
+  const iName    = getCol('name');
+  const iNameInd = getCol('name_ind');
+  const iNameOrg = getCol('name_org');
+  const iPostal  = getCol('postal');
+  const iPref    = getCol('pref');
+  const iCity    = getCol('city');
+  const iAddr    = getCol('addr');
+  const iAddrInd = getCol('addr_ind');
+  const iAddrOrg = getCol('addr_org');
+  const iAddr2   = getCol('addr2');
+
+  allRows.forEach(row=>{
+    // ── 氏名の決定 ──
+    // 個人名列・団体名列・共通氏名列から値を取得
+    const nameCommon = cellVal(row, iName);
+    const nameInd    = cellVal(row, iNameInd);
+    const nameOrg    = cellVal(row, iNameOrg);
+
+    // 表示名と様/御中の判定
+    let name = '', isOrg = false;
+    if(nameOrg && nameInd){
+      // 両列あり: 団体名があれば団体優先、なければ個人名
+      name   = nameOrg || nameInd;
+      isOrg  = !!nameOrg;
+    } else if(nameOrg){
+      name = nameOrg; isOrg = true;
+    } else if(nameInd){
+      name = nameInd; isOrg = false;
+    } else if(nameCommon){
+      name   = nameCommon;
+      isOrg  = ORG_KEYWORDS.some(k=>nameCommon.includes(k));
+    }
+    if(!name) return;
+
+    // ── 住所の決定 ──
+    // 個人住所列・団体住所列・共通住所列から適切な値を選択
+    let addrFull = '';
+    if(iAddrInd!==null || iAddrOrg!==null){
+      // 分離列あり: isOrgに応じて選択、なければ逆列にフォールバック
+      if(isOrg){
+        addrFull = cellVal(row,iAddrOrg) || cellVal(row,iAddrInd) || cellVal(row,iAddr);
+      } else {
+        addrFull = cellVal(row,iAddrInd) || cellVal(row,iAddrOrg) || cellVal(row,iAddr);
+      }
+    } else if(iAddr!==null){
+      addrFull = cellVal(row,iAddr);
+    } else {
+      addrFull = [iPref,iCity].filter(i=>i!==null).map(i=>cellVal(row,i)).join('');
+    }
+    const addr2 = cellVal(row, iAddr2);
+
+    // ── 郵便番号の整形 ──
+    let postal = cellVal(row,iPostal);
+    if(postal){
+      // 先頭に都道府県が混入していたら除去（例: "滋賀県527-0052" → "527-0052"）
+      postal = postal.replace(/^.{2,4}[都道府県]/, '');
+      if(!/^\d{3}-\d{4}$/.test(postal)){
+        postal = postal.replace(/[^0-9]/g,'');
+        if(postal.length===7) postal=postal.slice(0,3)+'-'+postal.slice(3);
+        else postal='';
+      }
+    }
+    // 住所列の先頭に郵便番号が含まれている場合は分離する（例: "527-0052 滋賀県..."）
+    if(!postal && addrFull){
+      const mAddr = addrFull.match(/^(\d{3}-?\d{4})\s*(.*)/);
+      if(mAddr){ postal=mAddr[1]; addrFull=mAddr[2]; }
+    }
+    // 住所列に郵便番号が残っていたら除去
+    if(addrFull) addrFull = addrFull.replace(/^\d{3}-?\d{4}\s*/, '');
+
+    // 住所列に郵便番号が残っていたら除去
+    if(addrFull) addrFull = addrFull.replace(/^\d{3}-?\d{4}\s*/, '');
+
+    if(!addrFull && !addr2){
+      skipped.push(name); return;
+    }
+
+    // 住所に都道府県がなければ滋賀県補完
+    if(addrFull && !addrFull.match(/^.{2,4}[都道府県]/)){
+      addrFull = '滋賀県'+addrFull;
+    }
+
+    // 幅ベースで折り返し（Canvas measureText使用）
+    const addrLines=wrapTextCanvas(addrFull,'11px "Noto Sans JP"');
+    if(addr2) addrLines.push(...wrapTextCanvas(addr2,'11px "Noto Sans JP"'));
+    records.push({postal,addrLines,name,isOrg});
+  });
+
+  // スキップ表示
+  const skipArea=document.getElementById('skip-area');
+  if(skipped.length){
+    skipArea.innerHTML=`<div class="alert">⚠️ 住所なしのためスキップ（${skipped.length}件）<div class="skip-list">${skipped.join('　')}</div></div>`;
+  } else { skipArea.innerHTML=''; }
+
+  // 統計
+  document.getElementById('cnt-total').textContent=records.length;
+  document.getElementById('cnt-pages').textContent=Math.ceil(records.length/21)||0;
+  document.getElementById('cnt-skip').textContent=skipped.length;
+}
+
+function renderPreview(){
+  const grid=document.getElementById('label-grid');
+  const show=records.slice(0,21);
+  grid.innerHTML=show.map(r=>`
+    <div class="label-cell">
+      <div class="label-postal">${r.postal}</div>
+      <div class="label-addr">${r.addrLines.join('<br>')}</div>
+      <div class="label-name-row">
+        <span class="label-name">${r.name}</span>
+        <span class="label-suffix">${r.isOrg?'御中':'様'}</span>
+      </div>
+    </div>
+  `).join('');
+  // 21マス未満なら空白で埋める
+  const empty=21-show.length;
+  for(let i=0;i<empty;i++) grid.innerHTML+=`<div class="label-cell"></div>`;
+}
+
+// ─── 幅ベース折り返しユーティリティ ────────────────────
+// Canvas ctx を使って実際の描画幅で折り返す
+function wrapCtx(ctx, text, font, maxW){
+  ctx.font=font;
+  const lines=[];
+  let tmp=text;
+  while(tmp.length>0){
+    let cut=tmp.length;
+    for(let i=1;i<=tmp.length;i++){
+      if(ctx.measureText(tmp.slice(0,i)).width>maxW){cut=i-1||1;break}
+    }
+    lines.push(tmp.slice(0,cut));
+    tmp=tmp.slice(cut);
+  }
+  return lines.length?lines:[''];
+}
+// データ作成時（ctx未使用）用: 仮canvasで計測
+function wrapTextCanvas(text, font, maxW=130){
+  if(!text) return [];
+  const cv=document.createElement('canvas');
+  const ctx=cv.getContext('2d');
+  return wrapCtx(ctx,text,font,maxW);
+}
+
+// ─── PDF生成 ─────────────────────────────────────────
+async function generatePDF(){
+  showLoading('PDF生成中…');
+  await new Promise(r=>setTimeout(r,50));
+  try{
+    const {jsPDF}=window.jspdf;
+    const doc=new jsPDF({unit:'pt',format:'a4'});
+
+    // 日本語フォント（Noto Sans JP）をBase64で埋め込む代わりに
+    // IPAフォントが使えないためUnicode対応のため文字ごとに描画
+    // → jsPDFのデフォルトフォントではCJK不可なので
+    //   canvas経由でラスタライズして画像として貼り付ける方式を採用
+
+    const PAGE_W=595.28, PAGE_H=841.89;
+    const COLS=3, ROWS=7;
+    const LW=PAGE_W/COLS, LH=PAGE_H/ROWS;
+    const PAD=8;
+
+    // フォント設定（canvas）
+    const FONT_ADDR ='11px "Noto Sans JP"';
+    const FONT_NAME ='11px "Noto Sans JP"';
+    const FONT_SUFF ='11px "Noto Sans JP"';
+    const DPR=2; // 解像度
+
+    const perPage=COLS*ROWS;
+    const pages=Math.ceil(records.length/perPage);
+
+    for(let p=0;p<pages;p++){
+      if(p>0) doc.addPage();
+      const pageRecs=records.slice(p*perPage,(p+1)*perPage);
+
+      for(let i=0;i<pageRecs.length;i++){
+        const r=pageRecs[i];
+        const col=i%COLS, row=Math.floor(i/COLS);
+        const lx=col*LW, ly=row*LH;
+
+        // Canvasでラベルを描画
+        const cv=document.createElement('canvas');
+        cv.width=Math.round(LW*DPR);
+        cv.height=Math.round(LH*DPR);
+        const ctx=cv.getContext('2d');
+        ctx.scale(DPR,DPR);
+        ctx.fillStyle='#ffffff';
+        ctx.fillRect(0,0,LW,LH);
+
+        let cy=PAD+11;
+
+        // 郵便番号
+        if(r.postal){
+          ctx.fillStyle='#000';ctx.font=FONT_ADDR;
+          ctx.fillText(r.postal,PAD,cy);cy+=14;
+        }
+        // 住所（幅ベース折り返し）
+        ctx.fillStyle='#000';ctx.font=FONT_ADDR;
+        const AVAIL=LW-PAD*2-22; // 様/御中のスペースを除いた幅
+        wrapCtx(ctx,r.addrLines.join(''),FONT_ADDR,AVAIL).forEach(line=>{
+          ctx.fillText(line,PAD,cy);cy+=13;
+        });
+
+        // 氏名と様/御中（同じY座標・四方に余白）
+        // 75/120.27≒0.624 → スクリプトと同じ top=75pt
+        const NAME_Y=Math.round(LH*0.624)+11;
+        ctx.fillStyle='#000';ctx.font=FONT_NAME;
+        wrapCtx(ctx,r.name,FONT_NAME,AVAIL).forEach((line,li)=>{
+          ctx.fillText(line,PAD,NAME_Y+li*13);
+        });
+
+        // 様/御中（名前の1行目と同じY座標・水平揃え）
+        ctx.fillStyle='#000';ctx.font=FONT_SUFF;
+        const suffW=ctx.measureText(r.isOrg?'御中':'様').width;
+        ctx.fillText(r.isOrg?'御中':'様',LW-PAD-suffW,NAME_Y);
+
+        const imgData=cv.toDataURL('image/png');
+        doc.addImage(imgData,'PNG',lx,ly,LW,LH);
+      }
+    }
+
+    doc.save('宛名ラベル.pdf');
+  }catch(e){alert('PDF生成エラー: '+e.message);console.error(e)}
+  finally{hideLoading()}
+}
+
+// ─── ユーティリティ ───────────────────────────────────
+function showLoading(msg){
+  document.getElementById('loading-text').textContent=msg||'処理中…';
+  document.getElementById('loading').classList.add('show');
+}
+function hideLoading(){document.getElementById('loading').classList.remove('show')}
+</script>
+</body>
+</html>
