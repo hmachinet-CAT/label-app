@@ -201,45 +201,71 @@
 
       <div id="alert-area"></div>
 
-      <div class="mapping-grid" id="mapping-grid">
-
-        <div class="mapping-label" style="grid-column:1/-1;font-size:11px;font-weight:600;color:var(--accent);padding:4px 0 2px;text-align:left">── 氏名・団体名</div>
-
-        <div class="mapping-label">氏名（共通） <span class="badge badge-ng" id="b-name">未検出</span></div>
-        <select id="col-name"><option value="">── 使わない ──</option></select>
-
-        <div class="mapping-label">個人名 <span class="badge" id="b-name_ind">未検出</span></div>
-        <select id="col-name_ind"><option value="">── 使わない ──</option></select>
-
-        <div class="mapping-label">団体名 <span class="badge" id="b-name_org">未検出</span></div>
-        <select id="col-name_org"><option value="">── 使わない ──</option></select>
-
-        <div class="mapping-label" style="grid-column:1/-1;font-size:11px;font-weight:600;color:var(--accent);padding:8px 0 2px;text-align:left">── 住所</div>
-
-        <div class="mapping-label">郵便番号 <span class="badge" id="b-postal">未検出</span></div>
-        <select id="col-postal"><option value="">── 使わない ──</option></select>
-
-        <div class="mapping-label">都道府県 <span class="badge" id="b-pref">未検出</span></div>
-        <select id="col-pref"><option value="">── 使わない ──</option></select>
-
-        <div class="mapping-label">市区町村 <span class="badge" id="b-city">未検出</span></div>
-        <select id="col-city"><option value="">── 使わない ──</option></select>
-
-        <div class="mapping-label">住所（共通） <span class="badge" id="b-addr">未検出</span></div>
-        <select id="col-addr"><option value="">── 使わない ──</option></select>
-
-        <div class="mapping-label">個人住所 <span class="badge" id="b-addr_ind">未検出</span></div>
-        <select id="col-addr_ind"><option value="">── 使わない ──</option></select>
-
-        <div class="mapping-label">団体住所 <span class="badge" id="b-addr_org">未検出</span></div>
-        <select id="col-addr_org"><option value="">── 使わない ──</option></select>
-
-        <div class="mapping-label">住所2行目 <span class="badge" id="b-addr2">未検出</span></div>
-        <select id="col-addr2"><option value="">── 使わない ──</option></select>
+      <!-- 氏名ブロック -->
+      <div style="margin-bottom:14px">
+        <div style="font-size:11px;font-weight:600;color:var(--accent);margin-bottom:8px;letter-spacing:.04em">氏名・団体名</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px">氏名（共通）<span class="badge" id="b-name" style="margin-left:4px">未検出</span></div>
+            <select id="col-name" style="width:100%"><option value="">── 使わない ──</option></select>
+            <div style="font-size:10px;color:var(--muted);margin-top:4px">個人・団体が同じ列の場合</div>
+          </div>
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px">個人名<span class="badge" id="b-name_ind" style="margin-left:4px">未検出</span></div>
+            <select id="col-name_ind" style="width:100%"><option value="">── 使わない ──</option></select>
+            <div style="font-size:10px;color:var(--muted);margin-top:4px">個人専用の列がある場合</div>
+          </div>
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px">団体名<span class="badge" id="b-name_org" style="margin-left:4px">未検出</span></div>
+            <select id="col-name_org" style="width:100%"><option value="">── 使わない ──</option></select>
+            <div style="font-size:10px;color:var(--muted);margin-top:4px">団体専用の列がある場合</div>
+          </div>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--muted);background:var(--warn-bg);border:1px solid var(--warn-border);border-radius:6px;padding:7px 10px">
+          💡 様 / 御中は自動判定します。「株式会社」「法人」「協議会」などのキーワードを含む場合は<strong>御中</strong>、個人名（姓 名 形式）は<strong>様</strong>になります
+        </div>
       </div>
 
-      <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border);font-size:12px;color:var(--muted)">
-        ※ 様 / 御中 は団体名列の有無・氏名内のキーワードで自動判定します
+      <!-- 住所ブロック -->
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--accent);margin-bottom:8px;letter-spacing:.04em">住所</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px">郵便番号<span class="badge" id="b-postal" style="margin-left:4px">未検出</span></div>
+            <select id="col-postal" style="width:100%"><option value="">── 使わない ──</option></select>
+          </div>
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px">住所2行目<span class="badge" id="b-addr2" style="margin-left:4px">未検出</span></div>
+            <select id="col-addr2" style="width:100%"><option value="">── 使わない ──</option></select>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px">住所（共通）<span class="badge" id="b-addr" style="margin-left:4px">未検出</span></div>
+            <select id="col-addr" style="width:100%"><option value="">── 使わない ──</option></select>
+            <div style="font-size:10px;color:var(--muted);margin-top:4px">1列にまとまっている場合</div>
+          </div>
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px">個人住所<span class="badge" id="b-addr_ind" style="margin-left:4px">未検出</span></div>
+            <select id="col-addr_ind" style="width:100%"><option value="">── 使わない ──</option></select>
+            <div style="font-size:10px;color:var(--muted);margin-top:4px">個人専用の住所列</div>
+          </div>
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px">団体住所<span class="badge" id="b-addr_org" style="margin-left:4px">未検出</span></div>
+            <select id="col-addr_org" style="width:100%"><option value="">── 使わない ──</option></select>
+            <div style="font-size:10px;color:var(--muted);margin-top:4px">団体専用の住所列</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px">都道府県<span class="badge" id="b-pref" style="margin-left:4px">未検出</span></div>
+            <select id="col-pref" style="width:100%"><option value="">── 使わない ──</option></select>
+          </div>
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px">市区町村<span class="badge" id="b-city" style="margin-left:4px">未検出</span></div>
+            <select id="col-city" style="width:100%"><option value="">── 使わない ──</option></select>
+          </div>
+        </div>
       </div>
     </div>
     <div class="btn-row">
@@ -274,12 +300,36 @@
 // ─── 定数 ───────────────────────────────────────────
 const ORG_KEYWORDS = [
   '株式会社','有限会社','合同会社','合資会社','合名会社',
-  '（株）','(株)','（有）','(有)',
-  '法人','協同組合','農業協同組合','協議会','委員会',
-  '協会','連合会','連盟','クラブ','サークル','システム',
-  '事務所','センター','学校','大学','病院','クリニック',
-  '組合','団体','機構','財団','NPO','NGO','御中'
+  '（株）','(株)','（有）','(有)','㈱','㈲',
+  '一般社団法人','一般財団法人','公益社団法人','公益財団法人',
+  '特定非営利活動法人','社会福祉法人','医療法人','宗教法人',
+  'NPO法人','NPO','NGO',
+  '協同組合','農業協同組合','事業協同組合',
+  '協議会','委員会','協会','連合会','連盟','審議会',
+  '組合','団体','機構','財団','基金',
+  'クラブ','サークル','システム','ネットワーク',
+  '事務所','センター','スタジオ','オフィス',
+  '学校','大学','高校','中学','小学','幼稚園','保育園',
+  '病院','クリニック','薬局','医院',
+  '商店','商会','工業','工務店','建設','興産','運輸',
+  '銀行','信用金庫','信用組合','農協',
+  '自治会','町内会','区','地区','まちづくり','ライオンズ','ロータリー',
+  '御中'
 ];
+
+// 名前が団体か個人かを判定する関数
+function detectIsOrg(name) {
+  if(!name) return false;
+  // キーワード含有チェック
+  if(ORG_KEYWORDS.some(k => name.includes(k))) return true;
+  // 名前にスペース（全角・半角）が含まれる → 個人名（姓 名）
+  if(/[\s　]/.test(name.trim())) return false;
+  // 英字のみ or 英数字のみ（屋号・ブランド名の可能性）→ 文字数で判断
+  // 4文字以下の英字は個人名の可能性、5文字以上は団体の可能性
+  if(/^[a-zA-Z0-9\s\-\.&]+$/.test(name) && name.length >= 5) return true;
+  // 漢字を含み、かつスペースなし、かつキーワード不一致 → 判断保留（個人名扱い）
+  return false;
+}
 
 // 列名キーワード辞書
 const COL_HINTS = {
@@ -465,7 +515,7 @@ function buildRecords(){
       name = nameInd; isOrg = false;
     } else if(nameCommon){
       name   = nameCommon;
-      isOrg  = ORG_KEYWORDS.some(k=>nameCommon.includes(k));
+      isOrg  = detectIsOrg(nameCommon);
     }
     if(!name) return;
 
@@ -592,8 +642,14 @@ async function generatePDF(){
 
     const PAGE_W=595.28, PAGE_H=841.89;
     const COLS=3, ROWS=7;
-    const LW=PAGE_W/COLS, LH=PAGE_H/ROWS;
-    const PAD=8;
+    const MM=2.8346;
+    const LW=70*MM, LH=42.3*MM;     // 正確寸法: 198.422 x 119.904 pt
+    const PAD=4*MM;                  // 左右余白4mm
+    const PAD_TOP=3.5*MM;            // 上余白 3.5mm
+    const LINE_H_C=3.5*MM;           // 行間 3.5mm
+    const PAD_BTM=5.0*MM;            // 下余白 5mm
+    const FONT_H_C=3.0*MM;           // フォント高さ相当 3mm
+    const TOP_NAME_C=LH-PAD_BTM-FONT_H_C; // 名前固定Y（ラベル内相対）
 
     // フォント設定（canvas）
     const FONT_ADDR ='11px "Noto Sans JP"';
@@ -622,7 +678,7 @@ async function generatePDF(){
         ctx.fillStyle='#ffffff';
         ctx.fillRect(0,0,LW,LH);
 
-        let cy=PAD+11;
+        let cy=PAD_TOP+FONT_H_C;
 
         // 郵便番号
         if(r.postal){
@@ -636,9 +692,8 @@ async function generatePDF(){
           ctx.fillText(line,PAD,cy);cy+=13;
         });
 
-        // 氏名と様/御中（同じY座標・四方に余白）
-        // 75/120.27≒0.624 → スクリプトと同じ top=75pt
-        const NAME_Y=Math.round(LH*0.624)+11;
+        // 氏名と様/御中（ラベル内相対座標・全行均一）
+        const NAME_Y=TOP_NAME_C+FONT_H_C;
         ctx.fillStyle='#000';ctx.font=FONT_NAME;
         wrapCtx(ctx,r.name,FONT_NAME,AVAIL).forEach((line,li)=>{
           ctx.fillText(line,PAD,NAME_Y+li*13);
