@@ -310,7 +310,7 @@
 
     <div class="btn-row">
       <button class="btn btn-ghost" onclick="goStep(2)">← 戻る</button>
-      <button class="btn btn-primary" id="btn-dl" onclick="generatePDF()">📄 PDFをダウンロード</button>
+      <button class="btn btn-primary" id="btn-print" onclick="printDirect()">🖨️ 印刷</button>
     </div>
   </div>
 </main>
@@ -860,6 +860,75 @@ async function generatePDF(){
     doc.save('宛名ラベル.pdf');
   }catch(e){alert('PDF生成エラー: '+e.message);console.error(e)}
   finally{hideLoading()}
+}
+
+// ─── 直接印刷（ブラウザのPDF縮小を回避）────────────────
+async function printDirect(){
+  showLoading('印刷データ準備中…');
+  await new Promise(r=>setTimeout(r,50));
+  try{
+    const {jsPDF}=window.jspdf;
+    const doc=new jsPDF({unit:'pt',format:'a4'});
+    const MM=2.8346;
+    const LW=70*MM, LH=42.3*MM;
+    const MARGIN_TOP=(297-42.3*7)/2*MM;
+    const MARGIN_LEFT=(210-70*3)/2*MM;
+    const rowTop = r => MARGIN_TOP + r*LH;
+    const colLeft = c2 => MARGIN_LEFT + c2*LW;
+    const PAD=4*MM, PAD_TOP=3.5*MM, LINE_H_C=3.5*MM;
+    const PAD_BTM=5.0*MM, FONT_H_C=3.0*MM;
+    const TOP_NAME_C=LH-PAD_BTM-FONT_H_C;
+    const FONT_ADDR='11px "Noto Sans JP"';
+    const FONT_NAME='11px "Noto Sans JP"';
+    const FONT_SUFF='11px "Noto Sans JP"';
+    const DPR=2;
+    const perPage=21;
+    const pages=Math.ceil(records.length/perPage);
+    for(let p=0;p<pages;p++){
+      if(p>0) doc.addPage();
+      const pageRecs=records.slice(p*perPage,(p+1)*perPage);
+      for(let i=0;i<pageRecs.length;i++){
+        const r=pageRecs[i];
+        const col=i%3, row=Math.floor(i/3);
+        const lx=colLeft(col), ly=rowTop(row);
+        const cv=document.createElement('canvas');
+        cv.width=Math.round(LW*DPR); cv.height=Math.round(LH*DPR);
+        const ctx=cv.getContext('2d');
+        ctx.scale(DPR,DPR);
+        ctx.fillStyle='#fff'; ctx.fillRect(0,0,LW,LH);
+        let cy=PAD_TOP+FONT_H_C;
+        if(r.postal){ctx.fillStyle='#000';ctx.font=FONT_ADDR;ctx.fillText(r.postal,PAD,cy);}
+        cy+=LINE_H_C;
+        ctx.fillStyle='#000';ctx.font=FONT_ADDR;
+        const AVAIL=LW-PAD*2-10;
+        smartSplitAddress(r.addrLines.join(''),FONT_ADDR,AVAIL).forEach(line=>{ctx.fillText(line,PAD,cy);cy+=LINE_H_C;});
+        const NAME_Y=TOP_NAME_C+FONT_H_C;
+        const nameParts=smartSplitName(r.name,FONT_NAME,AVAIL);
+        nameParts.forEach((p2,li)=>{
+          ctx.fillStyle='#000';
+          ctx.font=p2.fs?FONT_NAME.replace(/\d+(\.?\d*)px/,p2.fs+'px'):FONT_NAME;
+          ctx.fillText(p2.text,PAD,NAME_Y+li*13);
+        });
+        ctx.font=FONT_SUFF;ctx.fillStyle='#000';
+        const suffW=ctx.measureText(r.isOrg?'御中':'様').width;
+        ctx.fillText(r.isOrg?'御中':'様',LW-PAD-suffW,NAME_Y);
+        doc.addImage(cv.toDataURL('image/png'),'PNG',lx,ly,LW,LH);
+      }
+    }
+    // ブラウザの新タブでPDFを開いて印刷ダイアログを起動
+    const blob = new Blob([doc.output('arraybuffer')],{type:'application/pdf'});
+    const url = URL.createObjectURL(blob);
+    const iframe = document.createElement('iframe');
+    iframe.style.display='none';
+    document.body.appendChild(iframe);
+    iframe.src=url;
+    iframe.onload=()=>{
+      setTimeout(()=>{
+        iframe.contentWindow.print();
+        hideLoading();
+      },500);
+    };
+  }catch(e){alert('印刷エラー: '+e.message);hideLoading();}
 }
 
 // ─── ユーティリティ ───────────────────────────────────
