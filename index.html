@@ -782,11 +782,17 @@ async function generatePDF(){
     const PAGE_W=595.28, PAGE_H=841.89;
     const COLS=3, ROWS=7;
     const MM=2.8346;
-    const LW=70*MM, LH=42.3*MM;     // 正確寸法: 198.422 x 119.904 pt
-    const PAD=4*MM;                  // 左右余白4mm
-    const PAD_TOP=3.5*MM;            // 上余白 3.5mm
+    // F21A4-2 正確寸法: 70×42.3mm 3列×7行
+    const LW=70*MM, LH=42.3*MM;
+    const MARGIN_TOP=(297-42.3*7)/2*MM; // 上余白 0.45mm = 1.2756pt
+    const MARGIN_LEFT=(210-70*3)/2*MM;  // 左余白 0mm
+    // 各行・列の開始座標
+    const rowTop = r => MARGIN_TOP + r*LH;
+    const colLeft = c2 => MARGIN_LEFT + c2*LW;
+    const PAD=4*MM;                  // ラベル内左余白4mm
+    const PAD_TOP=3.5*MM;            // ラベル内上余白 3.5mm
     const LINE_H_C=3.5*MM;           // 行間 3.5mm
-    const PAD_BTM=5.0*MM;            // 下余白 5mm
+    const PAD_BTM=5.0*MM;            // ラベル内下余白 5mm
     const FONT_H_C=3.0*MM;           // フォント高さ相当 3mm
     const TOP_NAME_C=LH-PAD_BTM-FONT_H_C; // 名前固定Y（ラベル内相対）
 
@@ -806,7 +812,7 @@ async function generatePDF(){
       for(let i=0;i<pageRecs.length;i++){
         const r=pageRecs[i];
         const col=i%COLS, row=Math.floor(i/COLS);
-        const lx=col*LW, ly=row*LH;
+        const lx=colLeft(col), ly=rowTop(row);
 
         // Canvasでラベルを描画
         const cv=document.createElement('canvas');
