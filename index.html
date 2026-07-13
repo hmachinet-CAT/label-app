@@ -138,6 +138,13 @@
   .label-name-row{display:flex;align-items:baseline;justify-content:space-between;gap:4px}
   .label-name{font-size:11px;font-weight:400}
   .label-suffix{font-size:11px;color:var(--muted)}
+  .suffix-toggle{
+    font-size:10px;padding:1px 6px;border-radius:10px;cursor:pointer;border:none;
+    font-family:inherit;font-weight:500;transition:all .15s;
+  }
+  .suffix-toggle.sama{background:#e8f0eb;color:#2d5a3d}
+  .suffix-toggle.onchu{background:#fff3e0;color:#e65100}
+  .suffix-toggle:hover{opacity:.8}
 
   /* ── スキップリスト ── */
   .skip-list{font-size:12px;color:var(--danger);margin-top:10px;line-height:1.8}
@@ -283,11 +290,23 @@
     </div>
 
     <div id="preview-area">
-      <div class="preview-header">プレビュー（先頭21件）</div>
+      <div class="preview-header" style="display:flex;align-items:center;justify-content:space-between">
+        <span id="preview-label">プレビュー</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="btn btn-ghost" id="btn-prev" onclick="previewPage(-1)"
+            style="padding:4px 10px;font-size:12px">← 前</button>
+          <span id="preview-pager" style="font-size:12px;color:var(--muted)">1 / 1</span>
+          <button class="btn btn-ghost" id="btn-next" onclick="previewPage(1)"
+            style="padding:4px 10px;font-size:12px">次 →</button>
+        </div>
+      </div>
       <div class="label-grid" id="label-grid"></div>
     </div>
 
     <div id="skip-area"></div>
+    <div style="font-size:12px;color:var(--muted);margin:-10px 0 10px;padding:8px 12px;background:var(--bg);border-radius:6px;border:1px solid var(--border)">
+      💡 プレビューの <strong>様 / 御中</strong> ボタンをクリックすると切り替えられます（先頭21件のみ表示・全件に反映）
+    </div>
 
     <div class="btn-row">
       <button class="btn btn-ghost" onclick="goStep(2)">← 戻る</button>
@@ -303,31 +322,41 @@ const ORG_KEYWORDS = [
   '（株）','(株)','（有）','(有)','㈱','㈲',
   '一般社団法人','一般財団法人','公益社団法人','公益財団法人',
   '特定非営利活動法人','社会福祉法人','医療法人','宗教法人',
-  'NPO法人','NPO','NGO',
-  '協同組合','農業協同組合','事業協同組合',
-  '協議会','委員会','協会','連合会','連盟','審議会',
-  '組合','団体','機構','財団','基金',
-  'クラブ','サークル','システム','ネットワーク',
-  '事務所','センター','スタジオ','オフィス',
-  '学校','大学','高校','中学','小学','幼稚園','保育園',
-  '病院','クリニック','薬局','医院',
-  '商店','商会','工業','工務店','建設','興産','運輸',
-  '銀行','信用金庫','信用組合','農協',
-  '自治会','町内会','区','地区','まちづくり','ライオンズ','ロータリー',
+  'NPO法人','NPO','NGO','一般社団','公益財団','社会福祉',
+  '協同組合','農業協同組合','事業協同組合','生活協同組合',
+  '協議会','委員会','協会','連合会','連盟','審議会','評議会',
+  '組合','団体','機構','財団','基金','振興会','後援会',
+  'クラブ','サークル','システム','ネットワーク','コミュニティ',
+  '事務所','センター','スタジオ','オフィス','ラボ','研究所',
+  '学校','大学','高校','中学','小学','幼稚園','保育園','専門学校',
+  '病院','クリニック','薬局','医院','診療所',
+  '商店','商会','工業','工務店','建設','興産','運輸','物産',
+  '銀行','信用金庫','信用組合','農協','漁協',
+  '自治会','町内会','地区','まちづくり','ライオンズ','ロータリー',
+  '酒造','酒店','燃料','電設','商事','産業','開発','設計',
   '御中'
 ];
+
+// 精度向上: 名前パターンで個人判定
+function isPersonName(name){
+  // 全角スペースまたは半角スペースで区切られた2〜4文字×2パターン → 個人名
+  if(/^[一-龥ぁ-んァ-ヶ]{1,5}[\s　][一-龥ぁ-んァ-ヶぁ-ん]{1,5}$/.test(name)) return true;
+  // カタカナ姓名（外国人）
+  if(/^[ァ-ヶー]{2,6}[\s　][ァ-ヶー]{2,8}$/.test(name)) return true;
+  return false;
+}
 
 // 名前が団体か個人かを判定する関数
 function detectIsOrg(name) {
   if(!name) return false;
+  // 個人名パターンに一致 → 即座に「様」（キーワードより優先）
+  if(isPersonName(name)) return false;
   // キーワード含有チェック
   if(ORG_KEYWORDS.some(k => name.includes(k))) return true;
-  // 名前にスペース（全角・半角）が含まれる → 個人名（姓 名）
+  // スペースあり → 個人名（姓 名）
   if(/[\s　]/.test(name.trim())) return false;
-  // 英字のみ or 英数字のみ（屋号・ブランド名の可能性）→ 文字数で判断
-  // 4文字以下の英字は個人名の可能性、5文字以上は団体の可能性
-  if(/^[a-zA-Z0-9\s\-\.&]+$/.test(name) && name.length >= 5) return true;
-  // 漢字を含み、かつスペースなし、かつキーワード不一致 → 判断保留（個人名扱い）
+  // 英数字のみで5文字以上 → 団体・屋号の可能性
+  if(/^[a-zA-Z0-9\-\.&]+$/.test(name) && name.length >= 5) return true;
   return false;
 }
 
@@ -401,11 +430,16 @@ function loadSheet(){
 
 function buildColSelects(){
   const ids = ['name','name_ind','name_org','postal','pref','city','addr','addr_ind','addr_org','addr2'];
+  // 見出し（ヘッダー）がある列のみ選択肢に出す
+  const namedCols = headers
+    .map((h,i) => ({h: h.trim(), i}))
+    .filter(({h}) => h !== '');  // 空白の列は除外
+
   ids.forEach(id=>{
     const sel = document.getElementById('col-'+id);
     if(!sel) return;
     sel.innerHTML = '<option value="">── 使わない ──</option>'
-      + headers.map((h,i)=>`<option value="${i}">${h||'(列'+(i+1)+')'}</option>`).join('');
+      + namedCols.map(({h,i})=>`<option value="${i}">${h}</option>`).join('');
   });
 }
 
@@ -462,7 +496,8 @@ function goStep(n){
     const hasName = ['col-name','col-name_ind','col-name_org'].some(id=>document.getElementById(id)?.value!=='');
     if(!hasName){ alert('氏名・個人名・団体名のいずれかの列を選択してください'); return; }
     buildRecords();
-    renderPreview();
+    previewCurrentPage = 0;
+    renderPreview(0);
   }
   [1,2,3].forEach(i=>{
     document.getElementById('sec'+i).classList.toggle('visible',i===n);
@@ -518,6 +553,7 @@ function buildRecords(){
       isOrg  = detectIsOrg(nameCommon);
     }
     if(!name) return;
+    name = zenToHan(name);  // 全角英数字を半角に正規化
 
     // ── 住所の決定 ──
     // 個人住所列・団体住所列・共通住所列から適切な値を選択
@@ -562,13 +598,14 @@ function buildRecords(){
       skipped.push(name); return;
     }
 
+    addrFull = zenToHan(addrFull);  // 全角英数字を半角に正規化
     // 住所に都道府県がなければ滋賀県補完
     if(addrFull && !addrFull.match(/^.{2,4}[都道府県]/)){
       addrFull = '滋賀県'+addrFull;
     }
 
     // 幅ベースで折り返し（Canvas measureText使用）
-    const addrLines=wrapTextCanvas(addrFull,'11px "Noto Sans JP"');
+    const addrLines=smartSplitAddress(addrFull,'11px "Noto Sans JP"');
     if(addr2) addrLines.push(...wrapTextCanvas(addr2,'11px "Noto Sans JP"'));
     records.push({postal,addrLines,name,isOrg});
   });
@@ -585,26 +622,68 @@ function buildRecords(){
   document.getElementById('cnt-skip').textContent=skipped.length;
 }
 
-function renderPreview(){
-  const grid=document.getElementById('label-grid');
-  const show=records.slice(0,21);
-  grid.innerHTML=show.map(r=>`
+let previewCurrentPage = 0;
+
+function renderPreview(page){
+  if(page !== undefined) previewCurrentPage = page;
+  const per = 21;
+  const totalPages = Math.ceil(records.length / per) || 1;
+  if(previewCurrentPage >= totalPages) previewCurrentPage = totalPages - 1;
+  if(previewCurrentPage < 0) previewCurrentPage = 0;
+
+  const start = previewCurrentPage * per;
+  const show  = records.slice(start, start + per);
+
+  document.getElementById('preview-label').textContent =
+    `プレビュー（${start+1}〜${Math.min(start+show.length, records.length)}件 / 全${records.length}件）`;
+  document.getElementById('preview-pager').textContent =
+    `${previewCurrentPage+1} / ${totalPages}`;
+  document.getElementById('btn-prev').disabled = previewCurrentPage === 0;
+  document.getElementById('btn-next').disabled = previewCurrentPage >= totalPages-1;
+
+  const grid = document.getElementById('label-grid');
+  grid.innerHTML = show.map((r, i) => {
+    const idx = start + i;
+    return `
     <div class="label-cell">
       <div class="label-postal">${r.postal}</div>
       <div class="label-addr">${r.addrLines.join('<br>')}</div>
       <div class="label-name-row">
         <span class="label-name">${r.name}</span>
-        <span class="label-suffix">${r.isOrg?'御中':'様'}</span>
+        <button class="suffix-toggle ${r.isOrg?'onchu':'sama'}"
+          onclick="toggleSuffix(${idx},this)">${r.isOrg?'御中':'様'}</button>
       </div>
-    </div>
-  `).join('');
-  // 21マス未満なら空白で埋める
-  const empty=21-show.length;
-  for(let i=0;i<empty;i++) grid.innerHTML+=`<div class="label-cell"></div>`;
+    </div>`;
+  }).join('');
+
+  // 空きマスで21面を埋める
+  const empty = per - show.length;
+  for(let i=0; i<empty; i++) grid.innerHTML += `<div class="label-cell"></div>`;
+}
+
+function previewPage(dir){
+  renderPreview(previewCurrentPage + dir);
+}
+
+function toggleSuffix(idx, btn){
+  records[idx].isOrg = !records[idx].isOrg;
+  const isOrg = records[idx].isOrg;
+  btn.textContent = isOrg ? '御中' : '様';
+  btn.className = 'suffix-toggle ' + (isOrg ? 'onchu' : 'sama');
 }
 
 // ─── 幅ベース折り返しユーティリティ ────────────────────
-// Canvas ctx を使って実際の描画幅で折り返す
+// 全角英数字・記号・スペースを半角に変換
+function zenToHan(text){
+  if(!text) return text;
+  return text.split('').map(ch=>{
+    const code = ch.charCodeAt(0);
+    if(code >= 0xFF01 && code <= 0xFF5E) return String.fromCharCode(code - 0xFEE0);
+    if(code === 0x3000) return ' ';
+    return ch;
+  }).join('');
+}
+
 function wrapCtx(ctx, text, font, maxW){
   ctx.font=font;
   const lines=[];
@@ -619,12 +698,72 @@ function wrapCtx(ctx, text, font, maxW){
   }
   return lines.length?lines:[''];
 }
-// データ作成時（ctx未使用）用: 仮canvasで計測
-function wrapTextCanvas(text, font, maxW=130){
+function wrapTextCanvas(text, font, maxW=172){
   if(!text) return [];
   const cv=document.createElement('canvas');
   const ctx=cv.getContext('2d');
   return wrapCtx(ctx,text,font,maxW);
+}
+const ORG_PREFIXES = [
+  '特定非営利活動法人','社会福祉法人','公益財団法人','公益社団法人',
+  '一般財団法人','一般社団法人','医療法人','宗教法人',
+  'NPO法人','有限会社','株式会社','合同会社','合資会社','合名会社',
+];
+
+function _ctx(font){ const cv=document.createElement('canvas'); const ctx=cv.getContext('2d'); ctx.font=font; return ctx; }
+
+// 住所: 1行収まる→そのまま、建物名あり→番地/建物名で分割、長い→都道府県+市区郡/番地以降
+function smartSplitAddress(addr, font, maxW=172){
+  if(!addr) return [];
+  const ctx=_ctx(font);
+  // 建物名検出: 半角スペース区切り後が2文字以上の非数字（階数のみは除く）
+  // ※全角スペースは団体名内のスペースなので除外
+  const bldgM = addr.match(/^(.+?[\d]+) +([^\d\s]{2,}.*)$/);
+  if(bldgM && !/^\d+[FfＦ階]$/.test(bldgM[2])){
+    const l1=bldgM[1], bldg=bldgM[2];
+    if(ctx.measureText(l1).width > maxW) return [...smartSplitAddress(l1,font,maxW), bldg];
+    return [l1, bldg];
+  }
+  // 1行に収まる → そのまま
+  if(ctx.measureText(addr).width <= maxW) return [addr];
+  // 都道府県で分割
+  const prefM = addr.match(/^(.{2,4}[都道府県])(.*)/);
+  let line1='', rest='';
+  if(prefM){
+    const pref=prefM[1], afterPref=prefM[2];
+    const cityM=afterPref.match(/^((?:[^市区町村郡]*[郡])?[^市区町村]*[市区町村](?:[^市区町村]*[区])?)(.*)/);
+    if(cityM&&cityM[1]){line1=pref+cityM[1];rest=cityM[2].trim();}
+    else{line1=pref;rest=afterPref.trim();}
+  } else {
+    const cityM=addr.match(/^((?:.*?[市区町村郡])+)(.*)/);
+    if(cityM&&cityM[1].length<=12){line1=cityM[1];rest=cityM[2].trim();}
+    else return wrapCtx(ctx,addr,font,maxW);
+  }
+  if(ctx.measureText(line1).width>maxW) return wrapCtx(ctx,addr,font,maxW);
+  const lines=[line1];
+  if(rest) lines.push(...wrapCtx(ctx,rest,font,maxW));
+  return lines;
+}
+
+// 名前: 1行収まる→そのまま、長い→フォント縮小で1行、それでも無理なら法人格で改行
+function smartSplitName(name, font, maxW=172){
+  if(!name) return [{text:name,fs:null}];
+  const ctx=_ctx(font);
+  if(ctx.measureText(name).width<=maxW) return [{text:name,fs:null}];
+  // フォント縮小で1行に収まるか試みる（最小6pt）
+  for(const fs of [7.5,7.0,6.5,6.0]){
+    ctx.font=font.replace(/\d+(\.\d+)?px/,fs+'px');
+    if(ctx.measureText(name).width<=maxW) return [{text:name,fs}];
+  }
+  // 法人格で改行
+  ctx.font=font;
+  for(const prefix of ORG_PREFIXES){
+    if(name.startsWith(prefix)){
+      const rest=name.slice(prefix.length);
+      return rest?[{text:prefix,fs:null},...wrapCtx(ctx,rest,font,maxW).map(t=>({text:t,fs:null}))]:[{text:prefix,fs:null}];
+    }
+  }
+  return wrapCtx(ctx,name,font,maxW).map(t=>({text:t,fs:null}));
 }
 
 // ─── PDF生成 ─────────────────────────────────────────
@@ -687,17 +826,20 @@ async function generatePDF(){
         }
         // 住所（幅ベース折り返し）
         ctx.fillStyle='#000';ctx.font=FONT_ADDR;
-        const AVAIL=LW-PAD*2-22; // 様/御中のスペースを除いた幅
-        wrapCtx(ctx,r.addrLines.join(''),FONT_ADDR,AVAIL).forEach(line=>{
+        const AVAIL=LW-PAD*2-10; // 様/御中のスペースを除いた幅（最大）
+        smartSplitAddress(r.addrLines.join(''),FONT_ADDR,AVAIL).forEach(line=>{
           ctx.fillText(line,PAD,cy);cy+=13;
         });
 
         // 氏名と様/御中（ラベル内相対座標・全行均一）
         const NAME_Y=TOP_NAME_C+FONT_H_C;
-        ctx.fillStyle='#000';ctx.font=FONT_NAME;
-        wrapCtx(ctx,r.name,FONT_NAME,AVAIL).forEach((line,li)=>{
-          ctx.fillText(line,PAD,NAME_Y+li*13);
+        const nameParts=smartSplitName(r.name,FONT_NAME,AVAIL);
+        nameParts.forEach((p,li)=>{
+          ctx.fillStyle='#000';
+          ctx.font=p.fs?FONT_NAME.replace(/\d+(\.?\d*)px/,p.fs+'px'):FONT_NAME;
+          ctx.fillText(p.text,PAD,NAME_Y+li*13);
         });
+        ctx.font=FONT_NAME;
 
         // 様/御中（名前の1行目と同じY座標・水平揃え）
         ctx.fillStyle='#000';ctx.font=FONT_SUFF;
